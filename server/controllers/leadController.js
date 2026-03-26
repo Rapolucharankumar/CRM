@@ -1,29 +1,50 @@
-import Lead from "../models/Lead.js";
-import User from "../models/User.js";
+import prisma from "../config/db.js";
+
+// Basic Workflow Bonus: Auto-assign lead utility (simplified)
+const autoAssignLead = async (leadId) => {
+  // Find a sales rep (in a real app, this would be round-robin or based on load)
+  const salesRep = await prisma.user.findFirst({
+    where: { role: "SALES" },
+  });
+
+  if (salesRep) {
+    await prisma.lead.update({
+      where: { id: leadId },
+      data: { assignedTo: salesRep.id },
+    });
+    console.log(`[NOTIFICATION] Lead ${leadId} auto-assigned to ${salesRep.name} (${salesRep.email})`);
+  } else {
+    console.log(`[NOTIFICATION] Lead ${leadId} created, but no sales reps found for auto-assignment.`);
+  }
+};
 
 export const createLead = async (req, res) => {
   try {
-    const { name, email, phone, company, source, dealValue, nextFollowUp } =
-      req.body;
+    const { name, email, phone, company, source, dealValue, nextFollowUp } = req.body;
 
     if (!name || !email || !company) {
-      return res
-        .status(400)
-        .json({ message: "Name, email, and company are required" });
+      return res.status(400).json({ message: "Name, email, and company are required" });
     }
 
-    const lead = new Lead({
-      name,
-      email,
-      phone,
-      company,
-      source,
-      dealValue: dealValue || 0,
-      nextFollowUp,
-      assignedTo: req.user.id,
+    const lead = await prisma.lead.create({
+      data: {
+        name,
+        email,
+        phone,
+        company,
+        source,
+        dealValue: dealValue ? parseFloat(dealValue) : 0,
+        nextFollowUp: nextFollowUp ? new Date(nextFollowUp) : null,
+        assignedTo: req.user.id,
+      },
     });
 
-    await lead.save();
+    console.log(`[NOTIFICATION] New lead created: ${name} from ${company}`);
+    // Auto assign if it wasn't assigned by someone (MVP logic here just calls the function if not admin)
+    // For MVP we just use the creator as assignedTo initially, but can demonstrate the workflow
+    if (req.user.role === "ADMIN") {
+      await autoAssignLead(lead.id);
+    }
 
     res.status(201).json({
       message: "Lead created successfully",
@@ -38,12 +59,12 @@ export const getLeads = async (req, res) => {
   try {
     const { status, source, search, page = 1 } = req.query;
     const limit = 10;
-    const skip = (page - 1) * limit;
+    const skip = (parseInt(page) - 1) * limit;
 
     let filter = {};
 
     // Managers and admins can see all leads, sales reps see their own
-    if (req.user.role !== "admin" && req.user.role !== "manager") {
+    if (req.user.role !== "ADMIN") {
       filter.assignedTo = req.user.id;
     }
 
@@ -56,20 +77,24 @@ export const getLeads = async (req, res) => {
     }
 
     if (search) {
-      filter.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { company: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
+      filter.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { company: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
       ];
     }
 
-    const leads = await Lead.find(filter)
-      .populate("assignedTo", "name email")
-      .limit(limit)
-      .skip(skip)
-      .sort({ createdAt: -1 });
+    const leads = await prisma.lead.findMany({
+      where: filter,
+      include: {
+        user: { select: { name: true, email: true } },
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+    });
 
-    const total = await Lead.countDocuments(filter);
+    const total = await prisma.lead.count({ where: filter });
 
     res.status(200).json({
       leads,
@@ -86,21 +111,19 @@ export const getLeads = async (req, res) => {
 
 export const getLead = async (req, res) => {
   try {
-    const lead = await Lead.findById(req.params.id).populate(
-      "assignedTo",
-      "name email"
-    );
+    const lead = await prisma.lead.findUnique({
+      where: { id: req.params.id },
+      include: {
+        user: { select: { name: true, email: true } },
+      },
+    });
 
     if (!lead) {
       return res.status(404).json({ message: "Lead not found" });
     }
 
     // Check authorization
-    if (
-      req.user.role !== "admin" &&
-      req.user.role !== "manager" &&
-      lead.assignedTo._id.toString() !== req.user.id
-    ) {
+    if (req.user.role !== "ADMIN" && lead.assignedTo !== req.user.id) {
       return res.status(403).json({ message: "Access denied" });
     }
 
@@ -112,35 +135,36 @@ export const getLead = async (req, res) => {
 
 export const updateLead = async (req, res) => {
   try {
-    let lead = await Lead.findById(req.params.id);
+    const existingLead = await prisma.lead.findUnique({
+      where: { id: req.params.id },
+    });
 
-    if (!lead) {
+    if (!existingLead) {
       return res.status(404).json({ message: "Lead not found" });
     }
 
     // Check authorization
-    if (
-      req.user.role !== "admin" &&
-      req.user.role !== "manager" &&
-      lead.assignedTo.toString() !== req.user.id
-    ) {
+    if (req.user.role !== "ADMIN" && existingLead.assignedTo !== req.user.id) {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    const { name, email, phone, company, source, status, notes, dealValue, nextFollowUp } =
-      req.body;
+    const { name, email, phone, company, source, status, notes, dealValue, nextFollowUp } = req.body;
 
-    if (name) lead.name = name;
-    if (email) lead.email = email;
-    if (phone) lead.phone = phone;
-    if (company) lead.company = company;
-    if (source) lead.source = source;
-    if (status) lead.status = status;
-    if (notes !== undefined) lead.notes = notes;
-    if (dealValue !== undefined) lead.dealValue = dealValue;
-    if (nextFollowUp !== undefined) lead.nextFollowUp = nextFollowUp;
+    const data = {};
+    if (name !== undefined) data.name = name;
+    if (email !== undefined) data.email = email;
+    if (phone !== undefined) data.phone = phone;
+    if (company !== undefined) data.company = company;
+    if (source !== undefined) data.source = source;
+    if (status !== undefined) data.status = status;
+    if (notes !== undefined) data.notes = notes;
+    if (dealValue !== undefined) data.dealValue = parseFloat(dealValue);
+    if (nextFollowUp !== undefined) data.nextFollowUp = nextFollowUp ? new Date(nextFollowUp) : null;
 
-    await lead.save();
+    const lead = await prisma.lead.update({
+      where: { id: req.params.id },
+      data,
+    });
 
     res.status(200).json({
       message: "Lead updated successfully",
@@ -153,22 +177,22 @@ export const updateLead = async (req, res) => {
 
 export const deleteLead = async (req, res) => {
   try {
-    const lead = await Lead.findById(req.params.id);
+    const existingLead = await prisma.lead.findUnique({
+      where: { id: req.params.id },
+    });
 
-    if (!lead) {
+    if (!existingLead) {
       return res.status(404).json({ message: "Lead not found" });
     }
 
     // Check authorization
-    if (
-      req.user.role !== "admin" &&
-      req.user.role !== "manager" &&
-      lead.assignedTo.toString() !== req.user.id
-    ) {
+    if (req.user.role !== "ADMIN" && existingLead.assignedTo !== req.user.id) {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    await Lead.findByIdAndDelete(req.params.id);
+    await prisma.lead.delete({
+      where: { id: req.params.id },
+    });
 
     res.status(200).json({
       message: "Lead deleted successfully",
@@ -182,64 +206,54 @@ export const getDashboardStats = async (req, res) => {
   try {
     let filter = {};
 
-    // Managers and admins see all leads, sales reps see their own
-    if (req.user.role !== "admin" && req.user.role !== "manager") {
+    if (req.user.role !== "ADMIN") {
       filter.assignedTo = req.user.id;
     }
 
-    // Total leads
-    const totalLeads = await Lead.countDocuments(filter);
+    const totalLeads = await prisma.lead.count({ where: filter });
 
-    // Closed deals
-    const closedDeals = await Lead.countDocuments({
-      ...filter,
-      status: "Closed",
+    const closedDeals = await prisma.lead.count({
+      where: { ...filter, status: "Closed" },
     });
 
-    // Total revenue
-    const revenueData = await Lead.aggregate([
-      { $match: { ...filter, status: "Closed" } },
-      { $group: { _id: null, total: { $sum: "$dealValue" } } },
-    ]);
+    const revenueResult = await prisma.lead.aggregate({
+      where: { ...filter, status: "Closed" },
+      _sum: { dealValue: true },
+    });
+    const totalRevenue = revenueResult._sum.dealValue || 0;
 
-    const totalRevenue = revenueData[0]?.total || 0;
-
-    // Overdue follow-ups
     const now = new Date();
-    const overdueFollowups = await Lead.countDocuments({
-      ...filter,
-      nextFollowUp: { $lt: now },
-      status: { $nin: ["Closed", "Lost"] },
+    const overdueFollowups = await prisma.lead.count({
+      where: {
+        ...filter,
+        nextFollowUp: { lt: now },
+        status: { notIn: ["Closed", "LOST"] },
+      },
     });
 
-    // Leads by status
-    const leadsByStatus = await Lead.aggregate([
-      { $match: filter },
-      { $group: { _id: "$status", count: { $sum: 1 } } },
-      { $sort: { _id: 1 } },
-    ]);
+    // Grouping for status
+    const leadsByStatusRaw = await prisma.lead.groupBy({
+      by: ["status"],
+      where: filter,
+      _count: { _all: true },
+    });
+    const leadsByStatus = leadsByStatusRaw.map((item) => ({
+      _id: item.status,
+      count: item._count._all,
+    }));
 
-    // Monthly revenue
-    const monthlyRevenue = await Lead.aggregate([
-      { $match: { ...filter, status: "Closed" } },
-      {
-        $group: {
-          _id: {
-            year: { $year: "$createdAt" },
-            month: { $month: "$createdAt" },
-          },
-          revenue: { $sum: "$dealValue" },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { "_id.year": 1, "_id.month": 1 } },
-    ]);
-
-    // Lead source distribution
-    const sourceDistribution = await Lead.aggregate([
-      { $match: filter },
-      { $group: { _id: "$source", count: { $sum: 1 } } },
-    ]);
+    // Grouping for source
+    const sourceDistributionRaw = await prisma.lead.groupBy({
+      by: ["source"],
+      where: filter,
+      _count: { _all: true },
+    });
+    const sourceDistribution = sourceDistributionRaw
+      .filter(item => item.source !== null)
+      .map((item) => ({
+        _id: item.source,
+        count: item._count._all,
+      }));
 
     res.status(200).json({
       stats: {
@@ -250,7 +264,6 @@ export const getDashboardStats = async (req, res) => {
       },
       charts: {
         leadsByStatus,
-        monthlyRevenue,
         sourceDistribution,
       },
     });
@@ -263,33 +276,37 @@ export const getFollowUps = async (req, res) => {
   try {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
-
-    let filter = {
-      status: { $nin: ["Closed", "Lost"] },
-    };
-
-    if (req.user.role !== "admin" && req.user.role !== "manager") {
-      filter.assignedTo = req.user.id;
-    }
-
-    // Today's follow-ups
     const tomorrowStart = new Date(now);
     tomorrowStart.setDate(tomorrowStart.getDate() + 1);
 
-    const todayFollowUps = await Lead.find({
-      ...filter,
-      nextFollowUp: { $gte: now, $lt: tomorrowStart },
-    })
-      .populate("assignedTo", "name email")
-      .sort({ nextFollowUp: 1 });
+    let filter = {
+      status: { notIn: ["Closed", "LOST"] },
+    };
 
-    // Overdue follow-ups
-    const overdueFollowUps = await Lead.find({
-      ...filter,
-      nextFollowUp: { $lt: now },
-    })
-      .populate("assignedTo", "name email")
-      .sort({ nextFollowUp: 1 });
+    if (req.user.role !== "ADMIN") {
+      filter.assignedTo = req.user.id;
+    }
+
+    const todayFollowUps = await prisma.lead.findMany({
+      where: {
+        ...filter,
+        nextFollowUp: {
+          gte: now,
+          lt: tomorrowStart,
+        },
+      },
+      include: { user: { select: { name: true, email: true } } },
+      orderBy: { nextFollowUp: "asc" },
+    });
+
+    const overdueFollowUps = await prisma.lead.findMany({
+      where: {
+        ...filter,
+        nextFollowUp: { lt: now },
+      },
+      include: { user: { select: { name: true, email: true } } },
+      orderBy: { nextFollowUp: "asc" },
+    });
 
     res.status(200).json({
       todayFollowUps,

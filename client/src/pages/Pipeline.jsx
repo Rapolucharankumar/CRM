@@ -1,58 +1,46 @@
 import { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { Layout } from "../layouts/Layout";
-import { leadService } from "../services/api";
+import { dealService } from "../services/api";
 import { Card, Toast, LoadingSpinner, Badge } from "../components/UI";
 import { GripVertical, TrendingUp } from "lucide-react";
 
 export const Pipeline = () => {
-  const [leads, setLeads] = useState([]);
+  const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
 
   const statuses = [
-    "New",
-    "Contacted",
-    "Qualified",
-    "Proposal Sent",
-    "Closed",
-    "Lost",
+    "PROSPECTING",
+    "QUALIFICATION",
+    "PROPOSAL",
+    "WON",
+    "LOST",
   ];
 
   const statusColors = {
-    New: "bg-blue-50 border-blue-200",
-    Contacted: "bg-yellow-50 border-yellow-200",
-    Qualified: "bg-purple-50 border-purple-200",
-    "Proposal Sent": "bg-indigo-50 border-indigo-200",
-    Closed: "bg-green-50 border-green-200",
-    Lost: "bg-red-50 border-red-200",
+    PROSPECTING: "bg-blue-50 border-blue-200",
+    QUALIFICATION: "bg-yellow-50 border-yellow-200",
+    PROPOSAL: "bg-indigo-50 border-indigo-200",
+    WON: "bg-green-50 border-green-200",
+    LOST: "bg-red-50 border-red-200",
   };
 
   const statusBadgeColors = {
-    New: "default",
-    Contacted: "warning",
-    Qualified: "success",
-    "Proposal Sent": "info",
-    Closed: "success",
-    Lost: "danger",
+    PROSPECTING: "default",
+    QUALIFICATION: "warning",
+    PROPOSAL: "info",
+    WON: "success",
+    LOST: "danger",
   };
 
-  // Fetch leads
-  const fetchLeads = async () => {
+  const fetchDeals = async () => {
     try {
-      const response = await leadService.getLeads({ page: 1 });
-      // Fetch all pages
-      let allLeads = response.data.leads;
-
-      for (let i = 2; i <= response.data.pagination.pages; i++) {
-        const pageResponse = await leadService.getLeads({ page: i });
-        allLeads = [...allLeads, ...pageResponse.data.leads];
-      }
-
-      setLeads(allLeads);
+      const response = await dealService.getDeals();
+      setDeals(response.data.deals);
     } catch (error) {
       setToast({
-        message: error.response?.data?.message || "Failed to fetch leads",
+        message: error.response?.data?.message || "Failed to fetch deals",
         type: "error",
       });
     } finally {
@@ -61,16 +49,14 @@ export const Pipeline = () => {
   };
 
   useEffect(() => {
-    fetchLeads();
+    fetchDeals();
   }, []);
 
-  // Group leads by status
-  const leadsByStatus = statuses.reduce((acc, status) => {
-    acc[status] = leads.filter((lead) => lead.status === status);
+  const dealsByStatus = statuses.reduce((acc, status) => {
+    acc[status] = deals.filter((deal) => deal.stage === status);
     return acc;
   }, {});
 
-  // Handle drag and drop
   const handleDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
 
@@ -83,37 +69,35 @@ export const Pipeline = () => {
       return;
     }
 
-    const leadId = draggableId;
+    const dealId = draggableId;
     const newStatus = destination.droppableId;
 
     try {
-      await leadService.updateLead(leadId, { status: newStatus });
-
-      // Update local state
-      setLeads(
-        leads.map((lead) =>
-          lead._id === leadId ? { ...lead, status: newStatus } : lead
+      // Optimistic update
+      setDeals(
+        deals.map((deal) =>
+          deal.id === dealId ? { ...deal, stage: newStatus } : deal
         )
       );
 
+      await dealService.updateDealStage(dealId, { stage: newStatus });
+
       setToast({
-        message: `Lead updated to ${newStatus}`,
+        message: `Deal updated to ${newStatus}`,
         type: "success",
       });
     } catch (error) {
       setToast({
-        message: error.response?.data?.message || "Failed to update lead",
+        message: error.response?.data?.message || "Failed to update deal",
         type: "error",
       });
-      // Revert on error
-      fetchLeads();
+      fetchDeals(); // revert
     }
   };
 
-  // Calculate total deal value per status
   const getTotalValue = (status) => {
-    return leadsByStatus[status]
-      .reduce((sum, lead) => sum + lead.dealValue, 0)
+    return dealsByStatus[status]
+      .reduce((sum, deal) => sum + deal.value, 0)
       .toLocaleString();
   };
 
@@ -136,7 +120,6 @@ export const Pipeline = () => {
       )}
 
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-dark flex items-center">
@@ -144,22 +127,20 @@ export const Pipeline = () => {
               Sales Pipeline
             </h1>
             <p className="text-gray-600 mt-1">
-              Drag and drop leads between stages to update their status
+              Drag and drop deals between stages to update their status
             </p>
           </div>
         </div>
 
-        {/* Kanban Board */}
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="grid grid-cols-1 lg:grid-cols-6 gap-4 overflow-x-auto pb-4">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 overflow-x-auto pb-4">
             {statuses.map((status) => (
               <div key={status} className="flex flex-col min-w-full lg:min-w-auto">
-                {/* Column Header */}
                 <Card className={`${statusColors[status]} rounded-t-lg rounded-b-none border-l-4 px-4 py-3`}>
                   <div className="flex justify-between items-center mb-2">
                     <h3 className="font-semibold text-dark">{status}</h3>
                     <span className="text-xs bg-white text-dark px-2 py-1 rounded font-semibold">
-                      {leadsByStatus[status].length}
+                      {dealsByStatus[status].length}
                     </span>
                   </div>
                   <p className="text-xs text-gray-600">
@@ -167,21 +148,20 @@ export const Pipeline = () => {
                   </p>
                 </Card>
 
-                {/* Droppable Area */}
                 <Droppable droppableId={status}>
                   {(provided, snapshot) => (
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`flex-1 bg-gray-50 rounded-b-lg p-3 min-h-96 ${
+                      className={`flex-1 bg-gray-50 rounded-b-lg p-3 min-h-[400px] ${
                         snapshot.isDraggingOver ? "bg-blue-50" : ""
                       }`}
                     >
                       <div className="space-y-3">
-                        {leadsByStatus[status].map((lead, index) => (
+                        {dealsByStatus[status].map((deal, index) => (
                           <Draggable
-                            key={lead._id}
-                            draggableId={lead._id}
+                            key={deal.id}
+                            draggableId={deal.id}
                             index={index}
                           >
                             {(provided, snapshot) => (
@@ -201,24 +181,21 @@ export const Pipeline = () => {
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <h4 className="font-semibold text-dark text-sm truncate">
-                                      {lead.name}
+                                      {deal.title}
                                     </h4>
                                     <p className="text-xs text-gray-600 truncate">
-                                      {lead.company}
-                                    </p>
-                                    <p className="text-xs text-gray-500 truncate">
-                                      {lead.email}
+                                      {deal.lead?.name || "No Lead"}
                                     </p>
                                     <div className="mt-2 flex justify-between items-center">
                                       <span className="text-xs font-semibold text-dark">
-                                        ${lead.dealValue.toLocaleString()}
+                                        ${deal.value.toLocaleString()}
                                       </span>
                                       <Badge
                                         variant={
                                           statusBadgeColors[status] || "default"
                                         }
                                       >
-                                        {lead.source}
+                                        {status}
                                       </Badge>
                                     </div>
                                   </div>

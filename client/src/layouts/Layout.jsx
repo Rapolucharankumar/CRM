@@ -6,6 +6,7 @@ import {
   Users,
   TrendingUp,
   CheckCircle,
+  CheckSquare,
   LogOut,
   Menu,
   X,
@@ -20,6 +21,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
     { name: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
     { name: "Leads", icon: Users, path: "/leads" },
     { name: "Pipeline", icon: TrendingUp, path: "/pipeline" },
+    { name: "Tasks", icon: CheckSquare, path: "/tasks" },
     { name: "Follow-ups", icon: CheckCircle, path: "/followups" },
   ];
 

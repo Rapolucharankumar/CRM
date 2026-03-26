@@ -33,4 +33,20 @@ export const leadService = {
   getFollowUps: () => api.get("/leads/followups/list"),
 };
 
+// Deal endpoints
+export const dealService = {
+  createDeal: (data) => api.post("/deals", data),
+  getDeals: (params) => api.get("/deals", { params }),
+  updateDealStage: (id, data) => api.put(`/deals/${id}/stage`, data),
+  deleteDeal: (id) => api.delete(`/deals/${id}`),
+};
+
+// Task endpoints
+export const taskService = {
+  createTask: (data) => api.post("/tasks", data),
+  getTasks: (params) => api.get("/tasks", { params }),
+  updateTask: (id, data) => api.put(`/tasks/${id}`, data),
+  deleteTask: (id) => api.delete(`/tasks/${id}`),
+};
+
 export default api;

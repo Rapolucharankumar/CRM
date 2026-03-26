@@ -17,15 +17,15 @@ export const verifyToken = (req, res, next) => {
 };
 
 export const verifyAdmin = (req, res, next) => {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "ADMIN") {
     return res.status(403).json({ message: "Access denied. Admin only." });
   }
   next();
 };
 
-export const verifyManager = (req, res, next) => {
-  if (!["admin", "manager"].includes(req.user.role)) {
-    return res.status(403).json({ message: "Access denied. Manager or Admin only." });
+export const verifySalesOrAdmin = (req, res, next) => {
+  if (!["ADMIN", "SALES"].includes(req.user.role)) {
+    return res.status(403).json({ message: "Access denied." });
   }
   next();
 };

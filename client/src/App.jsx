@@ -8,6 +8,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { Leads } from "./pages/Leads";
 import { Pipeline } from "./pages/Pipeline";
 import { FollowUps } from "./pages/FollowUps";
+import { Tasks } from "./pages/Tasks";
 import { LoadingSpinner } from "./components/UI";
 
 // Protected Route Component
@@ -58,6 +59,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Pipeline />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tasks"
+        element={
+          <ProtectedRoute>
+            <Tasks />
           </ProtectedRoute>
         }
       />
