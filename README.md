@@ -170,8 +170,3 @@ CRM/
 - **Token Expired**: Simply log out and log back in to generate a fresh JWT.
 
 ---
-
-<div align="center">
-  <p>Created for educational purposes and real-world application management.</p>
-  <p><b>Built with ❤️ using the MERN Stack</b></p>
-</div>
