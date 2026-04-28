@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Layout } from "../layouts/Layout";
 import { taskService } from "../services/api";
 import { Card, Button, Input, Modal, Toast, LoadingSpinner, Badge } from "../components/UI";
-import { CheckSquare, Plus, Check, X, Clock } from "lucide-react";
+import { CheckSquare, Plus, Check, X, Clock, Calendar as CalendarIcon } from "lucide-react";
 
 export const Tasks = () => {
   const [tasks, setTasks] = useState([]);
@@ -80,63 +80,65 @@ export const Tasks = () => {
     <Layout>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-dark flex items-center">
-              <CheckSquare className="mr-3 text-primary" />
-              Tasks
+            <h1 className="text-2xl font-bold text-slate-800 flex items-center">
+              <CheckSquare className="mr-3 text-primary-600" />
+              Tasks Management
             </h1>
-            <p className="text-gray-600 mt-1">Manage your to-do items and due dates</p>
+            <p className="text-sm text-slate-500 mt-1">Organize your workflow and track pending to-dos</p>
           </div>
-          <Button onClick={() => setIsModalOpen(true)}>
+          <Button onClick={() => setIsModalOpen(true)} variant="primary">
             <Plus size={18} className="mr-2" />
             Add Task
           </Button>
         </div>
 
         {loading ? (
-          <LoadingSpinner />
+          <div className="py-20"><LoadingSpinner /></div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {tasks.map((task) => (
-              <Card key={task.id} className="p-5 flex flex-col justify-between hover:shadow-lg transition-shadow">
+              <Card key={task.id} className="p-5 flex flex-col justify-between hover:shadow-lg transition-all duration-300 border border-slate-100 group rounded-2xl">
                 <div>
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className={`font-semibold text-lg ${task.status === "DONE" ? "line-through text-gray-400" : "text-dark"}`}>
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className={`font-semibold text-base leading-snug ${task.status === "DONE" ? "line-through text-slate-400" : "text-slate-800"}`}>
                       {task.title}
                     </h3>
                     <Badge variant={task.status === "DONE" ? "success" : "warning"}>
                       {task.status}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-500 mb-4">{task.description}</p>
+                  <p className="text-sm text-slate-500 mb-4 line-clamp-3 leading-relaxed">{task.description}</p>
                 </div>
                 
-                <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+                <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
                   {task.dueDate ? (
-                    <div className="flex items-center text-xs text-gray-500">
-                      <Clock size={14} className="mr-1" />
-                      {new Date(task.dueDate).toLocaleDateString()}
+                    <div className="flex items-center text-xs font-medium text-slate-500 bg-slate-50 px-2.5 py-1.5 rounded-md">
+                      <Clock size={14} className="mr-1.5 text-slate-400" />
+                      {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric'})}
                     </div>
                   ) : (
                     <span className="text-xs text-transparent">No Due Date</span>
                   )}
                   
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => handleToggleStatus(task)}
-                      className={`p-1.5 rounded-full ${
+                      className={`p-1.5 rounded-lg transition-colors ${
                         task.status === "DONE"
-                          ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                          : "bg-green-100 text-green-600 hover:bg-green-200"
-                      } transition-colors`}
+                          ? "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                          : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                      }`}
+                      title={task.status === "DONE" ? "Mark as pending" : "Mark as completed"}
                     >
                       <Check size={16} />
                     </button>
                     <button
                       onClick={() => handleDeleteTask(task.id)}
-                      className="p-1.5 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
+                      className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                      title="Delete task"
                     >
                       <X size={16} />
                     </button>
@@ -145,43 +147,50 @@ export const Tasks = () => {
               </Card>
             ))}
             {tasks.length === 0 && (
-              <div className="col-span-full py-12 text-center text-gray-500 bg-white border border-gray-200 border-dashed rounded-lg">
-                No tasks found. Click "Add Task" to get started!
+              <div className="col-span-full py-16 flex flex-col items-center justify-center text-slate-500 bg-white border border-slate-200 border-dashed rounded-2xl">
+                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                  <CheckSquare size={28} className="text-slate-300" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-700 mb-1">No tasks pending</h3>
+                <p className="text-sm">You're all caught up! Click "Add Task" to create a new one.</p>
               </div>
             )}
           </div>
         )}
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="New Task">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Task">
         <form onSubmit={handleCreateTask} className="space-y-4">
           <Input
-            label="Title"
+            label="Task Title"
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             required
-            placeholder="Follow up with client..."
+            placeholder="e.g. Follow up with client regarding proposal..."
           />
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-slate-700">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none"
-              rows={3}
+              className="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none text-sm resize-none"
+              rows={4}
+              placeholder="Add some details about this task..."
             />
           </div>
           <Input
-            label="Due Date"
+            label="Due Date (Optional)"
             type="date"
             value={formData.dueDate}
             onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
           />
-          <div className="flex justify-end space-x-3 mt-6">
-            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
+            <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1">
               Cancel
             </Button>
-            <Button type="submit">Create Task</Button>
+            <Button type="submit" variant="primary" className="flex-1">
+              Create Task
+            </Button>
           </div>
         </form>
       </Modal>

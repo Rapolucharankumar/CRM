@@ -10,8 +10,10 @@ import {
   Toast,
   LoadingSpinner,
   Badge,
+  Avatar,
+  CompanyLogo
 } from "../components/UI";
-import { Plus, Edit2, Trash2, Search } from "lucide-react";
+import { Plus, Edit2, Trash2, Search, MoreVertical, Filter, Download } from "lucide-react";
 
 export const Leads = () => {
   const [leads, setLeads] = useState([]);
@@ -65,8 +67,8 @@ export const Leads = () => {
   const statusColors = {
     New: "default",
     Contacted: "warning",
-    Qualified: "success",
-    "Proposal Sent": "info",
+    Qualified: "primary",
+    "Proposal Sent": "purple",
     Closed: "success",
     Lost: "danger",
   };
@@ -89,8 +91,11 @@ export const Leads = () => {
   };
 
   useEffect(() => {
-    fetchLeads();
-  }, [filters]);
+    const timer = setTimeout(() => {
+      fetchLeads();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [filters.search, filters.status, filters.source, filters.page]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -185,141 +190,195 @@ export const Leads = () => {
         />
       )}
 
-      <div className="space-y-6">
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* Header */}
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-dark">Leads</h1>
-          <Button onClick={handleAddClick} variant="primary" size="lg">
-            <Plus size={20} className="mr-2" />
-            Add Lead
-          </Button>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">Leads Management</h1>
+            <p className="text-sm text-slate-500 mt-1">Manage and track your potential customers</p>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="secondary" className="hidden sm:flex">
+              <Download size={18} className="mr-2" />
+              Export
+            </Button>
+            <Button onClick={handleAddClick} variant="primary">
+              <Plus size={18} className="mr-2" />
+              Add Lead
+            </Button>
+          </div>
         </div>
 
-        {/* Filters */}
-        <Card>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Input
-              placeholder="Search by name, company..."
-              value={filters.search}
-              onChange={handleSearchChange}
-              icon={<Search size={18} />}
-            />
-            <Select
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
-              options={[{ value: "", label: "All Statuses" }, ...statusOptions]}
-            />
-            <Select
-              name="source"
-              value={filters.source}
-              onChange={handleFilterChange}
-              options={[{ value: "", label: "All Sources" }, ...sourceOptions]}
-            />
+        {/* Filters and Table Card */}
+        <Card className="!p-0 border-slate-200">
+          <div className="p-4 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+              <div className="w-full md:w-1/3 relative">
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search leads by name or email..."
+                  value={filters.search}
+                  onChange={handleSearchChange}
+                  className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none"
+                />
+              </div>
+              <div className="w-full md:w-auto flex gap-3">
+                <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3">
+                  <Filter size={16} className="text-slate-400" />
+                  <select
+                    name="status"
+                    value={filters.status}
+                    onChange={handleFilterChange}
+                    className="py-2 text-sm text-slate-600 bg-transparent border-none focus:ring-0 outline-none cursor-pointer"
+                  >
+                    <option value="">All Statuses</option>
+                    {statusOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  </select>
+                </div>
+                <div className="hidden sm:flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3">
+                  <select
+                    name="source"
+                    value={filters.source}
+                    onChange={handleFilterChange}
+                    className="py-2 text-sm text-slate-600 bg-transparent border-none focus:ring-0 outline-none cursor-pointer"
+                  >
+                    <option value="">All Sources</option>
+                    {sourceOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
           </div>
-        </Card>
 
-        {/* Leads Table */}
-        {loading ? (
-          <LoadingSpinner />
-        ) : leads.length === 0 ? (
-          <Card className="text-center py-12">
-            <p className="text-gray-500 text-lg">No leads found</p>
-          </Card>
-        ) : (
-          <>
-            <Card className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="border-b border-gray-200">
+          {/* Leads Table */}
+          {loading ? (
+            <div className="py-20"><LoadingSpinner /></div>
+          ) : leads.length === 0 ? (
+            <div className="text-center py-20 bg-white">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
+                <Search size={24} className="text-slate-400" />
+              </div>
+              <h3 className="text-lg font-medium text-slate-900 mb-1">No leads found</h3>
+              <p className="text-slate-500 text-sm max-w-sm mx-auto">We couldn't find any leads matching your current filters. Try adjusting your search or add a new lead.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-slate-50/50 border-b border-slate-200 text-slate-500">
                   <tr>
-                    <th className="text-left py-3 px-4 font-semibold text-dark">
-                      Name
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-dark">
-                      Company
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-dark">
-                      Email
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-dark">
-                      Status
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-dark">
-                      Deal Value
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-dark">
-                      Actions
-                    </th>
+                    <th className="py-4 px-6 font-semibold">Lead Details</th>
+                    <th className="py-4 px-6 font-semibold">Company</th>
+                    <th className="py-4 px-6 font-semibold">Status</th>
+                    <th className="py-4 px-6 font-semibold">Deal Value</th>
+                    <th className="py-4 px-6 font-semibold">Source</th>
+                    <th className="py-4 px-6 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-slate-100 bg-white">
                   {leads.map((lead) => (
-                    <tr key={lead._id} className="hover:bg-light">
-                      <td className="py-4 px-4">
-                        <span className="font-medium text-dark">{lead.name}</span>
+                    <tr key={lead._id} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <Avatar name={lead.name} seed={lead.email} size={36} />
+                          <div>
+                            <p className="font-medium text-slate-900">{lead.name}</p>
+                            <p className="text-slate-500 text-xs mt-0.5">{lead.email}</p>
+                          </div>
+                        </div>
                       </td>
-                      <td className="py-4 px-4 text-gray-600">{lead.company}</td>
-                      <td className="py-4 px-4 text-gray-600">{lead.email}</td>
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-2">
+                          {lead.company && <CompanyLogo companyName={lead.company} size={24} />}
+                          <span className="text-slate-700">{lead.company || "-"}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
                         <Badge variant={statusColors[lead.status] || "default"}>
                           {lead.status}
                         </Badge>
                       </td>
-                      <td className="py-4 px-4 font-semibold text-dark">
-                        ${lead.dealValue.toLocaleString()}
+                      <td className="py-4 px-6">
+                        <span className="font-medium text-slate-700">
+                          ${lead.dealValue ? lead.dealValue.toLocaleString() : "0"}
+                        </span>
                       </td>
-                      <td className="py-4 px-4 flex space-x-2">
-                        <button
-                          onClick={() => handleEditClick(lead)}
-                          className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg"
-                        >
-                          <Edit2 size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(lead._id)}
-                          className="p-2 hover:bg-red-50 text-red-600 rounded-lg"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                      <td className="py-4 px-6">
+                        <span className="text-slate-600">{lead.source}</span>
+                      </td>
+                      <td className="py-4 px-6 text-right">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => handleEditClick(lead)}
+                            className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-md transition-colors"
+                            title="Edit"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(lead._id)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                          <button
+                            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
+                            title="More options"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </Card>
-
-            {/* Pagination */}
-            <div className="flex justify-center items-center space-x-2">
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  setFilters({
-                    ...filters,
-                    page: Math.max(1, filters.page - 1),
-                  })
-                }
-                disabled={filters.page === 1}
-              >
-                Previous
-              </Button>
-              <span className="text-dark font-semibold">
-                Page {pagination.currentPage} of {pagination.pages}
-              </span>
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  setFilters({
-                    ...filters,
-                    page: Math.min(pagination.pages, filters.page + 1),
-                  })
-                }
-                disabled={filters.page === pagination.pages}
-              >
-                Next
-              </Button>
             </div>
-          </>
-        )}
+          )}
+
+          {/* Pagination */}
+          {!loading && leads.length > 0 && (
+            <div className="flex items-center justify-between p-4 border-t border-slate-100 bg-white rounded-b-xl">
+              <span className="text-sm text-slate-500">
+                Showing <span className="font-medium text-slate-900">{(pagination.currentPage - 1) * 10 + 1}</span> to <span className="font-medium text-slate-900">{Math.min(pagination.currentPage * 10, pagination.total)}</span> of <span className="font-medium text-slate-900">{pagination.total}</span> leads
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setFilters({ ...filters, page: Math.max(1, filters.page - 1) })}
+                  disabled={filters.page === 1}
+                >
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1 px-2">
+                  {[...Array(pagination.pages)].map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setFilters({ ...filters, page: i + 1 })}
+                      className={`w-7 h-7 rounded flex items-center justify-center text-sm ${
+                        pagination.currentPage === i + 1 
+                          ? "bg-primary-50 text-primary-600 font-medium" 
+                          : "text-slate-500 hover:bg-slate-100"
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setFilters({ ...filters, page: Math.min(pagination.pages, filters.page + 1) })}
+                  disabled={filters.page === pagination.pages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </Card>
       </div>
 
       {/* Add/Edit Modal */}
@@ -327,65 +386,68 @@ export const Leads = () => {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         title={editingLead ? "Edit Lead" : "Add New Lead"}
+        maxWidth="max-w-xl"
       >
-        <form onSubmit={handleSubmit} className="space-y-4 max-h-96 overflow-y-auto">
-          <Input
-            label="Name"
-            name="name"
-            value={formData.name}
-            onChange={handleFormChange}
-            required
-          />
-          <Input
-            label="Email"
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleFormChange}
-            required
-          />
-          <Input
-            label="Phone"
-            name="phone"
-            value={formData.phone}
-            onChange={handleFormChange}
-          />
-          <Input
-            label="Company"
-            name="company"
-            value={formData.company}
-            onChange={handleFormChange}
-            required
-          />
-          <Select
-            label="Source"
-            name="source"
-            value={formData.source}
-            onChange={handleFormChange}
-            options={sourceOptions}
-          />
-          <Input
-            label="Deal Value"
-            type="number"
-            name="dealValue"
-            value={formData.dealValue}
-            onChange={handleFormChange}
-          />
-          <Input
-            label="Next Follow-up"
-            type="date"
-            name="nextFollowUp"
-            value={formData.nextFollowUp}
-            onChange={handleFormChange}
-          />
-          <div className="flex space-x-3 pt-4">
-            <Button
-              type="submit"
-              variant="primary"
-              className="flex-1"
-            >
-              {editingLead ? "Update Lead" : "Create Lead"}
-            </Button>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Full Name"
+              name="name"
+              value={formData.name}
+              onChange={handleFormChange}
+              required
+              placeholder="e.g. Jane Doe"
+            />
+            <Input
+              label="Email Address"
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleFormChange}
+              required
+              placeholder="e.g. jane@company.com"
+            />
+            <Input
+              label="Phone Number"
+              name="phone"
+              value={formData.phone}
+              onChange={handleFormChange}
+              placeholder="e.g. +1 234 567 8900"
+            />
+            <Input
+              label="Company"
+              name="company"
+              value={formData.company}
+              onChange={handleFormChange}
+              required
+              placeholder="e.g. Acme Corp"
+            />
+            <Select
+              label="Lead Source"
+              name="source"
+              value={formData.source}
+              onChange={handleFormChange}
+              options={sourceOptions}
+            />
+            <Input
+              label="Deal Value ($)"
+              type="number"
+              name="dealValue"
+              value={formData.dealValue}
+              onChange={handleFormChange}
+              placeholder="0"
+            />
+            <Input
+              label="Next Follow-up"
+              type="date"
+              name="nextFollowUp"
+              value={formData.nextFollowUp}
+              onChange={handleFormChange}
+              className="md:col-span-2"
+            />
+          </div>
+          
+          <div className="flex gap-3 pt-6 mt-6 border-t border-slate-100">
             <Button
               type="button"
               variant="secondary"
@@ -393,6 +455,13 @@ export const Leads = () => {
               className="flex-1"
             >
               Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              className="flex-1"
+            >
+              {editingLead ? "Save Changes" : "Create Lead"}
             </Button>
           </div>
         </form>

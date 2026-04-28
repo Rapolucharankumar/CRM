@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { Layout } from "../layouts/Layout";
 import { dealService } from "../services/api";
-import { Card, Toast, LoadingSpinner, Badge } from "../components/UI";
-import { GripVertical, TrendingUp } from "lucide-react";
+import { Card, Toast, LoadingSpinner, Badge, Avatar } from "../components/UI";
+import { GripVertical, TrendingUp, MoreHorizontal, Calendar } from "lucide-react";
 
 export const Pipeline = () => {
   const [deals, setDeals] = useState([]);
@@ -19,17 +19,17 @@ export const Pipeline = () => {
   ];
 
   const statusColors = {
-    PROSPECTING: "bg-blue-50 border-blue-200",
-    QUALIFICATION: "bg-yellow-50 border-yellow-200",
-    PROPOSAL: "bg-indigo-50 border-indigo-200",
-    WON: "bg-green-50 border-green-200",
-    LOST: "bg-red-50 border-red-200",
+    PROSPECTING: "bg-blue-50/80 border-blue-200 text-blue-700",
+    QUALIFICATION: "bg-amber-50/80 border-amber-200 text-amber-700",
+    PROPOSAL: "bg-purple-50/80 border-purple-200 text-purple-700",
+    WON: "bg-emerald-50/80 border-emerald-200 text-emerald-700",
+    LOST: "bg-red-50/80 border-red-200 text-red-700",
   };
 
   const statusBadgeColors = {
     PROSPECTING: "default",
     QUALIFICATION: "warning",
-    PROPOSAL: "info",
+    PROPOSAL: "purple",
     WON: "success",
     LOST: "danger",
   };
@@ -119,42 +119,46 @@ export const Pipeline = () => {
         />
       )}
 
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 h-full flex flex-col">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-dark flex items-center">
-              <TrendingUp className="mr-3 text-primary" />
+            <h1 className="text-2xl font-bold text-slate-800 flex items-center">
+              <TrendingUp className="mr-3 text-primary-600" />
               Sales Pipeline
             </h1>
-            <p className="text-gray-600 mt-1">
-              Drag and drop deals between stages to update their status
+            <p className="text-sm text-slate-500 mt-1">
+              Drag and drop deals between stages to progress your sales
             </p>
+          </div>
+          <div className="flex bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+            <button className="px-4 py-1.5 text-sm font-medium bg-slate-100 text-slate-800 rounded-md">Board</button>
+            <button className="px-4 py-1.5 text-sm font-medium text-slate-500 hover:text-slate-700 rounded-md transition-colors">List</button>
           </div>
         </div>
 
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 overflow-x-auto pb-4">
+          <div className="flex flex-1 gap-6 overflow-x-auto pb-4 custom-scrollbar items-start min-h-[70vh]">
             {statuses.map((status) => (
-              <div key={status} className="flex flex-col min-w-full lg:min-w-auto">
-                <Card className={`${statusColors[status]} rounded-t-lg rounded-b-none border-l-4 px-4 py-3`}>
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-semibold text-dark">{status}</h3>
-                    <span className="text-xs bg-white text-dark px-2 py-1 rounded font-semibold">
+              <div key={status} className="flex flex-col min-w-[320px] w-[320px] bg-slate-100/50 rounded-xl border border-slate-200 shadow-sm overflow-hidden h-full">
+                <div className={`${statusColors[status]} border-b border-l-4 px-4 py-3 sticky top-0 z-10 backdrop-blur-md`}>
+                  <div className="flex justify-between items-center mb-1">
+                    <h3 className="font-semibold tracking-wide text-sm">{status}</h3>
+                    <span className="text-xs bg-white/60 backdrop-blur-sm px-2 py-0.5 rounded-full font-bold shadow-sm">
                       {dealsByStatus[status].length}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-600">
+                  <p className="text-sm font-medium opacity-80">
                     ${getTotalValue(status)}
                   </p>
-                </Card>
+                </div>
 
                 <Droppable droppableId={status}>
                   {(provided, snapshot) => (
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`flex-1 bg-gray-50 rounded-b-lg p-3 min-h-[400px] ${
-                        snapshot.isDraggingOver ? "bg-blue-50" : ""
+                      className={`flex-1 p-3 min-h-[200px] transition-colors ${
+                        snapshot.isDraggingOver ? "bg-slate-200/50" : ""
                       }`}
                     >
                       <div className="space-y-3">
@@ -168,35 +172,43 @@ export const Pipeline = () => {
                               <div
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
-                                className={`bg-white border border-gray-200 rounded-lg p-3 shadow-soft hover:shadow-md transition-all ${
-                                  snapshot.isDragging ? "shadow-lg bg-blue-50" : ""
+                                className={`bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-slate-300 transition-all group ${
+                                  snapshot.isDragging ? "shadow-xl ring-2 ring-primary-500 rotate-2 scale-105 z-50" : ""
                                 }`}
                               >
-                                <div className="flex items-start space-x-2">
+                                <div className="flex items-start gap-3">
                                   <div
                                     {...provided.dragHandleProps}
-                                    className="pt-1 text-gray-400"
+                                    className="pt-1 text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing transition-colors"
                                   >
-                                    <GripVertical size={16} />
+                                    <GripVertical size={18} />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <h4 className="font-semibold text-dark text-sm truncate">
-                                      {deal.title}
-                                    </h4>
-                                    <p className="text-xs text-gray-600 truncate">
-                                      {deal.lead?.name || "No Lead"}
+                                    <div className="flex justify-between items-start mb-1">
+                                      <h4 className="font-semibold text-slate-800 text-sm leading-tight truncate pr-2">
+                                        {deal.title}
+                                      </h4>
+                                      <button className="text-slate-400 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <MoreHorizontal size={16} />
+                                      </button>
+                                    </div>
+                                    
+                                    <p className="text-xl font-bold text-slate-700 my-2">
+                                      ${deal.value.toLocaleString()}
                                     </p>
-                                    <div className="mt-2 flex justify-between items-center">
-                                      <span className="text-xs font-semibold text-dark">
-                                        ${deal.value.toLocaleString()}
-                                      </span>
-                                      <Badge
-                                        variant={
-                                          statusBadgeColors[status] || "default"
-                                        }
-                                      >
-                                        {status}
-                                      </Badge>
+
+                                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
+                                      <div className="flex items-center gap-2">
+                                        <Avatar name={deal.lead?.name || "Unknown"} size={24} />
+                                        <span className="text-xs font-medium text-slate-600 truncate max-w-[100px]">
+                                          {deal.lead?.name || "No Lead"}
+                                        </span>
+                                      </div>
+                                      
+                                      <div className="flex items-center text-slate-400 text-xs gap-1" title="Created date">
+                                        <Calendar size={12} />
+                                        <span>{new Date(deal.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric'})}</span>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>

@@ -49,4 +49,18 @@ export const taskService = {
   deleteTask: (id) => api.delete(`/tasks/${id}`),
 };
 
+// External Free APIs
+export const externalApiService = {
+  // Uses free currency api
+  getExchangeRates: async () => {
+    try {
+      const response = await axios.get("https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch exchange rates", error);
+      return null;
+    }
+  }
+};
+
 export default api;
