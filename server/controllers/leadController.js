@@ -255,6 +255,28 @@ export const getDashboardStats = async (req, res) => {
         count: item._count._all,
       }));
 
+    // Monthly Revenue (JS grouping since MongoDB groupBy dates is complex in Prisma)
+    const allClosedDeals = await prisma.lead.findMany({
+      where: { ...filter, status: "Closed" },
+      select: { dealValue: true, updatedAt: true }
+    });
+    
+    const monthlyRevenueMap = {};
+    allClosedDeals.forEach(deal => {
+      const month = deal.updatedAt.getMonth() + 1;
+      const year = deal.updatedAt.getFullYear();
+      const key = `${year}-${month}`;
+      if (!monthlyRevenueMap[key]) {
+        monthlyRevenueMap[key] = { _id: { month, year }, revenue: 0, count: 0 };
+      }
+      monthlyRevenueMap[key].revenue += (deal.dealValue || 0);
+      monthlyRevenueMap[key].count += 1;
+    });
+    const monthlyRevenue = Object.values(monthlyRevenueMap).sort((a,b) => {
+      if(a._id.year !== b._id.year) return a._id.year - b._id.year;
+      return a._id.month - b._id.month;
+    });
+
     res.status(200).json({
       stats: {
         totalLeads,
@@ -265,6 +287,7 @@ export const getDashboardStats = async (req, res) => {
       charts: {
         leadsByStatus,
         sourceDistribution,
+        monthlyRevenue,
       },
     });
   } catch (error) {

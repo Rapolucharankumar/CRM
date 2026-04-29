@@ -67,8 +67,8 @@ export const Dashboard = () => {
   }
 
   const {
-    stats: { totalLeads, closedDeals, totalRevenue, overdueFollowups },
-    charts: { leadsByStatus, monthlyRevenue, sourceDistribution },
+    stats: { totalLeads = 0, closedDeals = 0, totalRevenue = 0, overdueFollowups = 0 },
+    charts: { leadsByStatus = [], monthlyRevenue = [], sourceDistribution = [] },
   } = stats;
 
   const displayRevenue = exchangeRates && currency !== "usd" 
