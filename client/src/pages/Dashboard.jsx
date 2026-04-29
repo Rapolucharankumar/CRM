@@ -94,7 +94,7 @@ export const Dashboard = () => {
     value: item.count,
   }));
 
-  const COLORS = ["#3B82F6", "#8B5CF6", "#10B981", "#F59E0B", "#EC4899", "#EF4444"];
+  const COLORS = ["#e11d48", "#f43f5e", "#fb923c", "#f59e0b", "#10b981", "#6366f1"];
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -109,8 +109,8 @@ export const Dashboard = () => {
       icon: Users,
       label: "Total Leads",
       value: totalLeads,
-      color: "from-blue-500 to-blue-600",
-      bgClass: "bg-blue-50 text-blue-600",
+      color: "from-rose-500 to-rose-600",
+      bgClass: "bg-rose-50 text-rose-600",
     },
     {
       icon: TrendingUp,
@@ -287,7 +287,7 @@ export const Dashboard = () => {
                 <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
                 <Bar
                   dataKey="revenue"
-                  fill="#3B82F6"
+                  fill="#e11d48"
                   name={`Revenue (${currencySymbol})`}
                   radius={[6, 6, 0, 0]}
                   barSize={40}

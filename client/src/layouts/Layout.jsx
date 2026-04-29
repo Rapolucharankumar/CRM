@@ -46,11 +46,11 @@ export const Sidebar = ({ isOpen, onClose }) => {
       >
         <div className="h-16 flex items-center px-6 border-b border-slate-800/60 bg-slate-900/50">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold">
-              Z
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/30 flex items-center justify-center text-white font-bold text-lg">
+              C
             </div>
             <h1 className="text-xl font-bold text-white tracking-tight">
-              ZoCRM Pro
+              Cherry CRM
             </h1>
           </div>
         </div>
