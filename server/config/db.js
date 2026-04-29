@@ -11,7 +11,7 @@ dotenv.config({ path: path.join(__dirname, "../.env") });
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DATABASE_URL,
+      url: process.env.MONGO_URI,
     },
   },
 });
