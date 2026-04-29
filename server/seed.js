@@ -1,63 +1,53 @@
-import mongoose from "mongoose";
+import prisma from "./config/db.js";
 import bcrypt from "bcryptjs";
-import dotenv from "dotenv";
-import User from "./models/User.js";
-import Lead from "./models/Lead.js";
-
-dotenv.config();
 
 async function seedDatabase() {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log("Connected to MongoDB");
+    console.log("Connected to MongoDB via Prisma");
 
-    // Clear existing data
-    await User.deleteMany({});
-    await Lead.deleteMany({});
+    // Clear existing data (in correct order to prevent relation errors if we were using foreign keys)
+    await prisma.task.deleteMany({});
+    await prisma.deal.deleteMany({});
+    await prisma.lead.deleteMany({});
+    await prisma.user.deleteMany({});
     console.log("Cleared existing data");
 
     // Create demo users
     const hashedPassword = await bcrypt.hash("demo123456", 10);
 
-    const users = await User.create([
-      {
+    const user1 = await prisma.user.create({
+      data: {
         name: "John Smith",
         email: "demo@crm.com",
         password: hashedPassword,
-        role: "sales",
-        department: "Sales",
+        role: "SALES",
       },
-      {
+    });
+
+    const user2 = await prisma.user.create({
+      data: {
         name: "Sarah Manager",
         email: "manager@crm.com",
         password: hashedPassword,
-        role: "manager",
-        department: "Sales",
+        role: "ADMIN",
       },
-      {
-        name: "Admin User",
-        email: "admin@crm.com",
-        password: hashedPassword,
-        role: "admin",
-        department: "Admin",
-      },
-    ]);
+    });
 
-    console.log(`Created ${users.length} users`);
+    console.log(`Created users`);
 
     // Create sample leads
-    const leads = await Lead.create([
+    const leadsData = [
       {
         name: "Acme Corp",
         email: "contact@acme.com",
         phone: "555-0101",
         company: "Acme Corporation",
         source: "Website",
-        status: "New",
+        status: "NEW",
         notes: "Interested in enterprise solution",
         dealValue: 50000,
         nextFollowUp: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-        assignedTo: users[0]._id,
+        assignedTo: user1.id,
       },
       {
         name: "Tech Startup Inc",
@@ -65,11 +55,11 @@ async function seedDatabase() {
         phone: "555-0102",
         company: "Tech Startup Inc",
         source: "Referral",
-        status: "Contacted",
+        status: "CONTACTED",
         notes: "Demo scheduled for next week",
         dealValue: 30000,
         nextFollowUp: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
-        assignedTo: users[0]._id,
+        assignedTo: user1.id,
       },
       {
         name: "Global Industries",
@@ -77,11 +67,11 @@ async function seedDatabase() {
         phone: "555-0103",
         company: "Global Industries",
         source: "Phone",
-        status: "Qualified",
+        status: "QUALIFIED",
         notes: "Budget approved, waiting for final sign-off",
         dealValue: 75000,
         nextFollowUp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        assignedTo: users[0]._id,
+        assignedTo: user1.id,
       },
       {
         name: "Local Services LLC",
@@ -89,11 +79,11 @@ async function seedDatabase() {
         phone: "555-0104",
         company: "Local Services LLC",
         source: "Social Media",
-        status: "Proposal Sent",
+        status: "PROPOSAL",
         notes: "Proposal sent via email",
         dealValue: 25000,
         nextFollowUp: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-        assignedTo: users[1]._id,
+        assignedTo: user2.id,
       },
       {
         name: "Cloud Solutions Ltd",
@@ -105,7 +95,7 @@ async function seedDatabase() {
         notes: "Contract signed, implementation starting",
         dealValue: 100000,
         nextFollowUp: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
-        assignedTo: users[1]._id,
+        assignedTo: user2.id,
       },
       {
         name: "Retail Group Co",
@@ -113,11 +103,11 @@ async function seedDatabase() {
         phone: "555-0106",
         company: "Retail Group Co",
         source: "Website",
-        status: "Lost",
+        status: "LOST",
         notes: "Customer chose competitor",
         dealValue: 40000,
         nextFollowUp: null,
-        assignedTo: users[0]._id,
+        assignedTo: user1.id,
       },
       {
         name: "Finance Plus",
@@ -125,11 +115,11 @@ async function seedDatabase() {
         phone: "555-0107",
         company: "Finance Plus",
         source: "Referral",
-        status: "New",
+        status: "NEW",
         notes: "Initial inquiry about features",
         dealValue: 65000,
         nextFollowUp: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
-        assignedTo: users[0]._id,
+        assignedTo: user1.id,
       },
       {
         name: "Healthcare Network",
@@ -137,11 +127,11 @@ async function seedDatabase() {
         phone: "555-0108",
         company: "Healthcare Network",
         source: "Phone",
-        status: "Contacted",
+        status: "CONTACTED",
         notes: "Need to understand compliance requirements",
         dealValue: 120000,
         nextFollowUp: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-        assignedTo: users[1]._id,
+        assignedTo: user2.id,
       },
       {
         name: "Education Institute",
@@ -149,11 +139,11 @@ async function seedDatabase() {
         phone: "555-0109",
         company: "Education Institute",
         source: "Email",
-        status: "Qualified",
+        status: "QUALIFIED",
         notes: "Waiting for budget approval from board",
         dealValue: 55000,
         nextFollowUp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        assignedTo: users[0]._id,
+        assignedTo: user1.id,
       },
       {
         name: "Manufacturing Corp",
@@ -161,17 +151,21 @@ async function seedDatabase() {
         phone: "555-0110",
         company: "Manufacturing Corp",
         source: "Website",
-        status: "Proposal Sent",
+        status: "PROPOSAL",
         notes: "Evaluation ongoing",
         dealValue: 85000,
         nextFollowUp: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000),
-        assignedTo: users[1]._id,
+        assignedTo: user2.id,
       },
-    ]);
+    ];
 
-    console.log(`Created ${leads.length} leads`);
+    await prisma.lead.createMany({
+      data: leadsData,
+    });
 
-    console.log("✓ Database seeded successfully!");
+    console.log(`Created ${leadsData.length} leads`);
+
+    console.log("✓ Database seeded successfully with Prisma!");
     process.exit(0);
   } catch (error) {
     console.error("Error seeding database:", error);
